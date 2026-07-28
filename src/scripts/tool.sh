@@ -20,8 +20,8 @@ start_adguardhome() {
 
   # to fix https://github.com/AdguardTeam/AdGuardHome/issues/7002
   export SSL_CERT_DIR="/system/etc/security/cacerts/"
-  # set timezone to Shanghai
-  export TZ="Asia/Shanghai"
+  # set timezone
+  export TZ="$timezone"
 
   # backup old log and overwrite new log
   if [ -f "$AGH_DIR/bin.log" ]; then
@@ -59,6 +59,7 @@ start_adguardhome() {
 }
 
 stop_adguardhome() {
+  $SCRIPT_DIR/iptables.sh disable
   if [ -f "$PID_FILE" ]; then
     pid=$(cat "$PID_FILE")
     kill $pid || kill -9 $pid
@@ -69,7 +70,6 @@ stop_adguardhome() {
     log "🔴 AdGuardHome force stopped" "🔴 AdGuardHome 强制停止"
   fi
   update_description "🔴 Stopped" "🔴 已停止"
-  $SCRIPT_DIR/iptables.sh disable
 }
 
 toggle_adguardhome() {

@@ -1,4 +1,4 @@
-## 20260728-1
+## 20260824
 
 Fork con correcciones para el corte de DNS al arrancar.
 

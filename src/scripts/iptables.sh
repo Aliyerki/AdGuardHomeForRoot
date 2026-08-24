@@ -82,8 +82,20 @@ add_block_ipv6_dns() {
 
   log "Creating ADGUARD_BLOCK_DNS chain and adding rules" "创建 ADGUARD_BLOCK_DNS 链并添加规则"
   $ip6tables_w -t filter -N ADGUARD_BLOCK_DNS || return 1
-  $ip6tables_w -t filter -A ADGUARD_BLOCK_DNS -p udp --dport 53 -j DROP || return 1
-  $ip6tables_w -t filter -A ADGUARD_BLOCK_DNS -p tcp --dport 53 -j DROP || return 1
+
+  # Reject rather than drop. A silently dropped query leaves the client waiting
+  # out its full timeout before retrying over IPv4, which surfaces as random
+  # "connected, no internet" stalls on IPv6-native carriers (issue #71). An
+  # explicit refusal makes the resolver fall back to IPv4 straight away.
+  if ! $ip6tables_w -t filter -A ADGUARD_BLOCK_DNS -p udp --dport 53 -j REJECT --reject-with icmp6-port-unreachable 2>/dev/null; then
+    log "REJECT unavailable, falling back to DROP for udp" "REJECT 不可用，udp 回退到 DROP"
+    $ip6tables_w -t filter -A ADGUARD_BLOCK_DNS -p udp --dport 53 -j DROP || return 1
+  fi
+  if ! $ip6tables_w -t filter -A ADGUARD_BLOCK_DNS -p tcp --dport 53 -j REJECT --reject-with tcp-reset 2>/dev/null; then
+    log "REJECT unavailable, falling back to DROP for tcp" "REJECT 不可用，tcp 回退到 DROP"
+    $ip6tables_w -t filter -A ADGUARD_BLOCK_DNS -p tcp --dport 53 -j DROP || return 1
+  fi
+
   $ip6tables_w -t filter -I OUTPUT -j ADGUARD_BLOCK_DNS || return 1
 
   log "Applied ipv6 iptables rules successfully" "成功应用 ipv6 iptables 规则"

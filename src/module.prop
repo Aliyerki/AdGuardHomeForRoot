@@ -1,7 +1,7 @@
 id=AdGuardHome
-name=AdGuardHome for Root
-version=20260728
-versionCode=52
-author=twoone3
+name=AdGuardHome for Root (Aliyerki)
+version=20260728-1
+versionCode=53
+author=twoone3, Aliyerki
 description=none
-updateJson=https://raw.githubusercontent.com/twoone-3/AdGuardHomeForRoot/main/version.json
+updateJson=https://raw.githubusercontent.com/Aliyerki/AdGuardHomeForRoot/main/version.json

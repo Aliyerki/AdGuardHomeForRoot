@@ -30,18 +30,17 @@ dns:
   ratelimit_whitelist: []
   refuse_any: true
   upstream_dns:
-    - https://223.5.5.5/dns-query
-    - https://1.12.12.12/dns-query
-  upstream_dns_file: ""
-  bootstrap_dns:
-    - 119.29.29.29
-    - 223.5.5.5
-    - 223.6.6.6
-    - 1.1.1.1
-    - 8.8.8.8
-  fallback_dns:
     - https://1.1.1.1/dns-query
     - https://8.8.8.8/dns-query
+  upstream_dns_file: ""
+  bootstrap_dns:
+    - 1.1.1.1
+    - 1.0.0.1
+    - 8.8.8.8
+    - 8.8.4.4
+  fallback_dns:
+    - https://9.9.9.9/dns-query
+    - https://1.0.0.1/dns-query
   upstream_mode: load_balance
   fastest_timeout: 1s
   allowed_clients: []

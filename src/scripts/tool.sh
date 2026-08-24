@@ -1,6 +1,11 @@
 . /data/adb/agh/settings.conf
 . /data/adb/agh/scripts/base.sh
 
+# An upgrade keeps the user's existing settings.conf, so anything added to that
+# file after their install is simply missing here. Give the newer keys defaults.
+startup_timeout="${startup_timeout:-120}"
+timezone="${timezone:-UTC}"
+
 move_to_system_cgroup() {
   echo $$ > /sys/fs/cgroup/cgroup.procs 2>/dev/null
   [ -f /dev/memcg/system/cgroup.procs ] && echo $$ > /dev/memcg/system/cgroup.procs 2>/dev/null

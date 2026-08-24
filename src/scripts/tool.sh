@@ -1,10 +1,11 @@
 . /data/adb/agh/settings.conf
 . /data/adb/agh/scripts/base.sh
 
-# An upgrade keeps the user's existing settings.conf, so anything added to that
-# file after their install is simply missing here. Give the newer keys defaults.
+# An upgrade keeps the user's existing settings.conf, so a key added to that
+# file after the user installed is simply missing here and arrives empty.
+# Note timezone is not defaulted here on purpose: an empty TZ already means
+# UTC, so anyone upgrading without that key wants it set in settings.conf.
 startup_timeout="${startup_timeout:-120}"
-timezone="${timezone:-UTC}"
 
 move_to_system_cgroup() {
   echo $$ > /sys/fs/cgroup/cgroup.procs 2>/dev/null

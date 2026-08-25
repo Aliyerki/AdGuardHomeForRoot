@@ -63,6 +63,17 @@ jobs:
           cp -a src/. staging/
           cp "cache/${{ matrix.arch }}/AdGuardHome/AdGuardHome" "staging/bin/AdGuardHome"
 
+      # Fork addition: module.prop is kept identical to upstream in git so that
+      # syncing never conflicts, so the fork's name and update URL are stamped
+      # in here instead.
+      - name: Brand fork build
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME}"
+          [[ "$version" =~ ^[0-9]{8}$ ]] || version="$(date -u +%Y%m%d)"
+          ./fork-brand.sh staging "$version"
+
       - name: Create zip package
         shell: bash
         run: |
@@ -114,3 +125,28 @@ jobs:
           files: |
             AdGuardHomeForRoot_arm64.zip
             AdGuardHomeForRoot_armv7.zip
+
+      # Fork addition: installed modules poll fork-version.json on main, so the
+      # release is only visible to them once that file names this tag. Runs last
+      # on purpose -- it must not advertise a release that failed to publish.
+      - name: Publish update manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p staging
+          cp src/module.prop staging/module.prop
+          ./fork-brand.sh staging "${GITHUB_REF_NAME}" /tmp/fork-version.json
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+          cp /tmp/fork-version.json fork-version.json
+
+          if git diff --quiet -- fork-version.json; then
+            echo "fork-version.json already points at ${GITHUB_REF_NAME}"
+            exit 0
+          fi
+          git add fork-version.json
+          git commit -m "chore: point updates at ${GITHUB_REF_NAME}"
+          git push origin main

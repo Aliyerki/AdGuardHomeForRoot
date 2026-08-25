@@ -1,0 +1,84 @@
+name: Check upstream
+
+# Fork-only workflow. GitHub never tells a fork that its parent moved, so this
+# asks once a week and opens an issue when there is something to sync.
+
+on:
+  schedule:
+    # Mondays, 13:00 UTC
+    - cron: "0 13 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    name: Compare with upstream
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Count new upstream commits
+        id: cmp
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/twoone-3/AdGuardHomeForRoot.git
+          git fetch -q upstream main
+
+          count="$(git rev-list --count HEAD..upstream/main)"
+          echo "count=$count" >>"$GITHUB_OUTPUT"
+          echo "Upstream is $count commit(s) ahead"
+
+          {
+            echo 'log<<COMMITS_EOF'
+            git log --format='- [`%h`](https://github.com/twoone-3/AdGuardHomeForRoot/commit/%H) %s' HEAD..upstream/main
+            echo 'COMMITS_EOF'
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Open or update the sync issue
+        if: steps.cmp.outputs.count != '0'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COUNT: ${{ steps.cmp.outputs.count }}
+          COMMITS: ${{ steps.cmp.outputs.log }}
+        run: |
+          set -euo pipefail
+          gh label create upstream-sync \
+            --description "Upstream has changes this fork has not picked up" \
+            --color 0e8a16 --force
+
+          body="$(cat <<EOF
+Upstream (\`twoone-3/AdGuardHomeForRoot\`) is **$COUNT commit(s)** ahead of this fork.
+
+$COMMITS
+
+To pick them up:
+
+\`\`\`bash
+./sync-upstream.sh           # rebases the fork's patches, stops on conflict
+./sync-upstream.sh --push
+git tag $(date -u +%Y%m%d) && git push origin $(date -u +%Y%m%d)
+\`\`\`
+
+The tag builds and publishes the release, and points \`fork-version.json\` at it.
+EOF
+          )"
+
+          existing="$(gh issue list --label upstream-sync --state open --json number -q '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            echo "Updating issue #$existing"
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create \
+              --title "Upstream is $COUNT commit(s) ahead" \
+              --label upstream-sync \
+              --body "$body"
+          fi

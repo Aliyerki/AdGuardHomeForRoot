@@ -2,11 +2,15 @@
 # Linux equivalent of pack.ps1: fetch the AdGuardHome binary and build the
 # flashable module zip.
 #
-# Usage: ./pack.sh [arm64|armv7]   (default: arm64)
+# Usage: ./pack.sh [arm64|armv7] [version]   (default: arm64, today's date)
+#
+# Passing a version also refreshes fork-version.json, which is what the module
+# checks for updates. Leave it off for throwaway test builds.
 
 set -euo pipefail
 
 ARCH="${1:-arm64}"
+VERSION="${2:-}"
 case "$ARCH" in
 arm64 | armv7) ;;
 *)
@@ -42,6 +46,12 @@ rm -rf staging
 mkdir -p staging
 cp -a src/. staging/
 cp "$CACHE_DIR/$ARCH/AdGuardHome/AdGuardHome" staging/bin/AdGuardHome
+
+if [ -n "$VERSION" ]; then
+  ./fork-brand.sh staging "$VERSION" fork-version.json
+else
+  ./fork-brand.sh staging
+fi
 
 echo "==> Building $OUT"
 rm -f "$OUT"

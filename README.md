@@ -83,9 +83,10 @@ described in upstream
 | `src/scripts/iptables.sh` | `REJECT` instead of `DROP` for IPv6 DNS, so the client falls back to IPv4 immediately. Falls back to `DROP` where the kernel lacks `REJECT`. |
 | `src/settings.conf` | New `startup_timeout` key (120s). Timezone set to `America/Mexico_City`. |
 | `src/bin/AdGuardHome.yaml` | Cloudflare and Google DoH upstreams using **literal IPs**, so nothing needs resolving via bootstrap at startup. |
-| `src/module.prop`, `version.json` | Auto-update points at this fork rather than upstream. |
+| `fork-brand.sh` | Stamps the fork's name, author and update URL onto `module.prop` **at build time**. `src/module.prop` and `version.json` stay byte-identical to upstream in git, so upstream's monthly version bumps to those files never conflict on a sync. |
 | `pack.sh` | Builds on Linux (upstream ships only the PowerShell `pack.ps1`). |
 | `sync-upstream.sh` | Pulls upstream changes without losing these patches. |
+| `.github/workflows/upstream-check.yml` | Opens an issue here when upstream gets ahead — GitHub does not notify forks on its own. |
 
 Note that only the first two rows are bug fixes. The timezone and the DNS
 upstreams are personal configuration and are deliberately **not** part of the
@@ -130,7 +131,20 @@ files on the device by hand.
 Downloads the official AdGuardHome binary, stages it into `src/` and produces the
 flashable zip. Uses `zip` when available and `python3` otherwise.
 
+## Releasing
+
+Pushing an 8-digit date tag is the whole release process — GitHub Actions builds
+both architectures, publishes the release and updates `fork-version.json`, which
+is what installed modules poll for updates:
+
+```bash
+git tag 20260901 && git push origin 20260901
+```
+
 ## Syncing with upstream
+
+Nothing pulls upstream changes on a schedule; a weekly job only opens an issue
+here when there is something to pick up. Doing it:
 
 ```bash
 ./sync-upstream.sh          # review the changes
@@ -139,7 +153,9 @@ flashable zip. Uses `zip` when available and `python3` otherwise.
 
 Rebases the local patches onto `upstream/main`, shows what changed upstream and
 what is being replayed, and stops if there is a conflict. Conflicts are expected
-whenever upstream touches `tool.sh`, `iptables.sh`, `settings.conf` or the README.
+whenever upstream touches `tool.sh`, `iptables.sh`, `settings.conf`, `pack.yml` or
+the README — but no longer on `module.prop` or `version.json`, which is where
+every upstream release used to collide.
 
 ---
 

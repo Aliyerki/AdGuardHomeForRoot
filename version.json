@@ -1,6 +1,6 @@
 {
-  "versionCode": 53,
-  "version": "20260824",
-  "zipUrl": "https://github.com/Aliyerki/AdGuardHomeForRoot/releases/latest/download/AdGuardHomeForRoot_arm64.zip",
-  "changelog": "https://raw.githubusercontent.com/Aliyerki/AdGuardHomeForRoot/main/changelog.md"
+  "versionCode": 52,
+  "version": "20260728",
+  "zipUrl": "https://github.com/twoone-3/AdGuardHomeForRoot/releases/latest/download/AdGuardHomeForRoot_arm64.zip",
+  "changelog": "https://raw.githubusercontent.com/twoone-3/AdGuardHomeForRoot/main/changelog.md"
 }

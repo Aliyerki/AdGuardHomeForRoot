@@ -75,9 +75,10 @@ original.
 | `src/scripts/iptables.sh` | `REJECT` en lugar de `DROP` para el DNS IPv6, para que el cliente caiga a IPv4 al instante. Vuelve a `DROP` si el kernel no soporta `REJECT`. |
 | `src/settings.conf` | Nueva clave `startup_timeout` (120 s). Zona horaria `America/Mexico_City`. |
 | `src/bin/AdGuardHome.yaml` | Upstreams Cloudflare y Google por DoH con **IP literal**, así no hace falta resolver nada por bootstrap al arrancar. |
-| `src/module.prop`, `version.json` | El auto-update apunta a este fork, no al original. |
+| `fork-brand.sh` | Pone el nombre, el autor y la URL de actualización del fork en `module.prop` **al compilar**. Así `src/module.prop` y `version.json` quedan idénticos a los del original en git y sus subidas de versión mensuales ya no chocan al sincronizar. |
 | `pack.sh` | Compilar en Linux (el original solo trae `pack.ps1` de PowerShell). |
 | `sync-upstream.sh` | Traer las novedades del repo original sin perder estos parches. |
+| `.github/workflows/upstream-check.yml` | Abre un issue aquí cuando el original saca cambios; GitHub no avisa a los forks por su cuenta. |
 
 ### Resultado medido, en arranque en frío
 
@@ -118,7 +119,20 @@ aplicarlos a mano al archivo del teléfono.
 Descarga el binario oficial de AdGuardHome, lo mete en `src/` y genera el zip
 flasheable. Usa `zip` si está instalado y `python3` si no.
 
+## Publicar una versión
+
+Empujar un tag de 8 dígitos es todo el proceso: GitHub Actions compila las dos
+arquitecturas, publica la release y actualiza `fork-version.json`, que es el
+archivo que consultan los módulos ya instalados:
+
+```bash
+git tag 20260901 && git push origin 20260901
+```
+
 ## Actualizar desde el repo original
+
+Nada trae los cambios del original solo; un job semanal únicamente abre un issue
+aquí cuando hay algo que recoger. Para hacerlo:
 
 ```bash
 ./sync-upstream.sh          # revisar los cambios
@@ -127,7 +141,9 @@ flasheable. Usa `zip` si está instalado y `python3` si no.
 
 Rebasa los parches locales sobre `upstream/main`, muestra qué cambió arriba y
 qué se replica, y avisa si hay conflicto. Los conflictos son esperables cuando
-el original toca `tool.sh`, `iptables.sh` o `settings.conf`.
+el original toca `tool.sh`, `iptables.sh`, `settings.conf`, `pack.yml` o los
+README — pero ya no con `module.prop` ni `version.json`, que era donde chocaba
+cada release suya.
 
 ---
 

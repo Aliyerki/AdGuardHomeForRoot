@@ -1,35 +1,47 @@
-# AdGuardHome for Root — fork de Aliyerki
+# AdGuardHome for Root — Aliyerki's fork
 
-Español | [English](README_en.md) | [简体中文](README_zh.md)
+English | [Español](README_es.md)
 
-![arm-64](https://img.shields.io/badge/arm--64-soportado-ef476f?logo=linux&logoColor=white)
-![arm-v7](https://img.shields.io/badge/arm--v7-soportado-ffa500?logo=linux&logoColor=white)
+![arm-64](https://img.shields.io/badge/arm--64-supported-ef476f?logo=linux&logoColor=white)
+![arm-v7](https://img.shields.io/badge/arm--v7-supported-ffa500?logo=linux&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-9b5de5?logo=opensourceinitiative&logoColor=white)
 
-Fork de [twoone-3/AdGuardHomeForRoot](https://github.com/twoone-3/AdGuardHomeForRoot)
-con correcciones al corte de DNS que sufría el módulo en cada arranque.
+Fork of [twoone-3/AdGuardHomeForRoot](https://github.com/twoone-3/AdGuardHomeForRoot)
+that fixes the DNS blackout the module caused on every boot.
 
-Todo el mérito del módulo original es de [twoone3](https://github.com/twoone-3);
-este fork solo añade los parches descritos abajo.
+All credit for the module itself goes to [twoone3](https://github.com/twoone-3);
+this fork only adds the patches described below. This page covers **what the fork
+changes**; for the module's own documentation see the original README in
+[English](README_en.md) or [简体中文](README_zh.md), and the
+[docs](docs/index.md).
+
+## About the module
+
+AdGuardHome for Root runs [AdGuardHome](https://github.com/AdguardTeam/AdGuardHome)
+as a root module (Magisk, KernelSU or APatch), giving the phone a local DNS server
+that blocks ads, malware and trackers — no VPN slot used, so it coexists with
+proxy apps. Filtering uses the
+[AWAvenue Ads Rule](https://github.com/TG-Twilight/AWAvenue-Ads-Rule) list, and
+the control panel lives at <http://127.0.0.1:3000>.
 
 ---
 
-## Por qué existe este fork
+## Why this fork exists
 
-Tras cada reinicio el teléfono se quedaba **sin internet en el navegador y en
-Google Play**, mientras otras apps sí funcionaban. Poner y quitar el modo avión
-lo arreglaba hasta el siguiente reinicio.
+After every reboot the phone had **no internet in the browser or Google Play**,
+while other apps worked fine. Toggling airplane mode fixed it until the next
+reboot.
 
-Diagnosticando los logs aparecieron tres causas distintas.
+Reading the logs turned up three separate causes.
 
-### 1. Carrera de arranque (la principal)
+### 1. Boot race (the main one)
 
-`tool.sh` comprobaba `ps | grep AdGuardHome` y acto seguido redirigía el
-puerto 53 con iptables. Pero esa comprobación solo demuestra que **el proceso
-nació**, no que el servidor DNS ya esté escuchando. El servidor tarda mucho más:
-primero carga las listas de filtros y sondea los upstreams.
+`tool.sh` checked `ps | grep AdGuardHome` and then immediately redirected port 53
+with iptables. That check only proves the **process spawned** — not that the DNS
+server is listening. The server binds much later, after it loads the filter lists
+and probes the upstreams.
 
-En un Redmi Note 11 la ventana era de **40 segundos**:
+On a Redmi Note 11 the window was **40 seconds**:
 
 ```
 21:31:45.804  starting adguard home
@@ -37,112 +49,115 @@ En un Redmi Note 11 la ventana era de **40 segundos**:
 21:32:25.988  dnsproxy: listening to udp addr=127.0.0.1:5591
 ```
 
-Durante esos 40 s **todo el DNS del dispositivo se redirigía a un puerto donde
-no había nadie escuchando**. Android hace justo ahí su comprobación de
-conectividad, falla, y marca la red como "sin internet". El navegador y Play
-Store respetan esa bandera y se niegan a usar la red; las apps que la ignoran
-seguían funcionando — de ahí que pareciera un problema de apps y no de DNS.
-El modo avión forzaba una revalidación cuando el servidor ya estaba listo.
+For those 40 seconds **every DNS query on the device was redirected to a port
+nothing was listening on**. Android runs its connectivity check inside that
+window, it fails, and the network gets flagged as having no internet. The browser
+and Play Store honour that flag and refuse to use the network, while apps that
+ignore it keep working — which is why it looked like an app problem rather than a
+DNS one. Airplane mode forced a re-validation once the server was finally up.
 
-### 2. Upstreams inalcanzables desde América
+### 2. Upstreams unreachable from the Americas
 
-La configuración de fábrica apuntaba a servidores DoH chinos con bootstrap
-también chino. Desde una red mexicana cada consulta agotaba **20 s de timeout**,
-incluidos los dominios que Android necesita para validar la conexión:
+The stock config pointed at Chinese DoH servers with Chinese bootstrap servers.
+From a Mexican network every query burned a **20 second timeout**, including the
+domains Android needs to validate the connection:
 
 ```
 exchange failed ... question=";www.gstatic.com. IN AAAA"  timeout exceeded
 ```
 
-### 3. `DROP` del DNS IPv6 en una red IPv6 nativa
+### 3. Dropping IPv6 DNS on an IPv6-native carrier
 
-El módulo descartaba en silencio las consultas DNS por IPv6. Al no recibir
-respuesta, el cliente espera su timeout completo antes de reintentar por IPv4.
-Es el mecanismo que describe el
-[issue #71](https://github.com/twoone-3/AdGuardHomeForRoot/issues/71) del
-original.
+The module silently dropped IPv6 DNS queries. With no answer at all, the client
+waits out its full timeout before retrying over IPv4. This is the mechanism
+described in upstream
+[issue #71](https://github.com/twoone-3/AdGuardHomeForRoot/issues/71).
 
 ---
 
-## Qué cambia respecto al original
+## What differs from upstream
 
-| Archivo | Cambio |
+| File | Change |
 |---|---|
-| `src/scripts/tool.sh` | Espera a que el DNS escuche de verdad antes de aplicar iptables, leyendo `/proc/net/udp{,6}`. Si no llega en `startup_timeout`, **omite** las reglas en vez de dejar el equipo sin DNS. |
-| `src/scripts/iptables.sh` | `REJECT` en lugar de `DROP` para el DNS IPv6, para que el cliente caiga a IPv4 al instante. Vuelve a `DROP` si el kernel no soporta `REJECT`. |
-| `src/settings.conf` | Nueva clave `startup_timeout` (120 s). Zona horaria `America/Mexico_City`. |
-| `src/bin/AdGuardHome.yaml` | Upstreams Cloudflare y Google por DoH con **IP literal**, así no hace falta resolver nada por bootstrap al arrancar. |
-| `src/module.prop`, `version.json` | El auto-update apunta a este fork, no al original. |
-| `pack.sh` | Compilar en Linux (el original solo trae `pack.ps1` de PowerShell). |
-| `sync-upstream.sh` | Traer las novedades del repo original sin perder estos parches. |
+| `src/scripts/tool.sh` | Waits for the DNS listener to actually bind before applying iptables, by reading `/proc/net/udp{,6}`. If it never binds within `startup_timeout`, the rules are **skipped** instead of leaving the device with no DNS. |
+| `src/scripts/iptables.sh` | `REJECT` instead of `DROP` for IPv6 DNS, so the client falls back to IPv4 immediately. Falls back to `DROP` where the kernel lacks `REJECT`. |
+| `src/settings.conf` | New `startup_timeout` key (120s). Timezone set to `America/Mexico_City`. |
+| `src/bin/AdGuardHome.yaml` | Cloudflare and Google DoH upstreams using **literal IPs**, so nothing needs resolving via bootstrap at startup. |
+| `src/module.prop`, `version.json` | Auto-update points at this fork rather than upstream. |
+| `pack.sh` | Builds on Linux (upstream ships only the PowerShell `pack.ps1`). |
+| `sync-upstream.sh` | Pulls upstream changes without losing these patches. |
 
-### Resultado medido, en arranque en frío
+Note that only the first two rows are bug fixes. The timezone and the DNS
+upstreams are personal configuration and are deliberately **not** part of the
+patches sent upstream.
 
-| | Antes | Después |
+### Measured result, cold boot
+
+| | Before | After |
 |---|---|---|
-| Apagón de DNS | **40.2 s** | **0 s** |
-| Arranque del servidor DNS | 40 s | 1.26 s |
-| Timeouts en el log | decenas | 0 |
-| Red validada sin modo avión | no | **sí** |
+| DNS blackout | **40.2 s** | **0 s** |
+| DNS server startup | 40 s | 1.26 s |
+| Timeouts in the log | dozens | 0 |
+| Network validated without airplane mode | no | **yes** |
 
-El bloqueo de anuncios no se ve afectado: `doubleclick.net` sigue devolviendo
-dirección nula y los dominios normales resuelven.
+Ad blocking is unaffected: `doubleclick.net` still resolves to a null address and
+normal domains resolve fine.
 
 ---
 
-## Instalación
+## Installing
 
-1. Descarga el zip de tu arquitectura desde
+1. Download the zip for your architecture from
    [Releases](https://github.com/Aliyerki/AdGuardHomeForRoot/releases/latest)
-   (`arm64` para la mayoría de teléfonos actuales).
-2. Comprueba que **DNS privado esté desactivado**: Ajustes → Red e internet →
-   DNS privado. Si está activo, se salta el módulo.
-3. Instálalo desde tu gestor root (Magisk, KernelSU o APatch) y reinicia.
-4. Panel de control en <http://127.0.0.1:3000>, usuario y contraseña `root`/`root`.
+   (`arm64` for most current phones).
+2. Make sure **Private DNS is off**: Settings → Network & internet → Private DNS.
+   If it is on, it bypasses the module.
+3. Install from your root manager (Magisk, KernelSU or APatch) and reboot.
+4. Control panel at <http://127.0.0.1:3000>, default credentials `root`/`root`.
 
-Al **actualizar**, el instalador pregunta si conservar la configuración anterior
-(volumen arriba = sí, abajo = no, 30 s sin tocar nada = sí). Conservarla mantiene
-tus filtros y estadísticas, pero también **mantiene tu `AdGuardHome.yaml` y tu
-`settings.conf` viejos**: los cambios de upstreams o de zona horaria hay que
-aplicarlos a mano al archivo del teléfono.
+When **upgrading**, the installer asks whether to keep your existing config
+(volume up = yes, volume down = no, 30s of no input = yes). Keeping it preserves
+your filters and statistics, but it also **keeps your old `AdGuardHome.yaml` and
+`settings.conf`** — any change to upstreams or timezone has to be applied to the
+files on the device by hand.
 
-## Compilar
-
-```bash
-./pack.sh arm64     # o armv7
-```
-
-Descarga el binario oficial de AdGuardHome, lo mete en `src/` y genera el zip
-flasheable. Usa `zip` si está instalado y `python3` si no.
-
-## Actualizar desde el repo original
+## Building
 
 ```bash
-./sync-upstream.sh          # revisar los cambios
-./sync-upstream.sh --push   # publicarlos
+./pack.sh arm64     # or armv7
 ```
 
-Rebasa los parches locales sobre `upstream/main`, muestra qué cambió arriba y
-qué se replica, y avisa si hay conflicto. Los conflictos son esperables cuando
-el original toca `tool.sh`, `iptables.sh` o `settings.conf`.
+Downloads the official AdGuardHome binary, stages it into `src/` and produces the
+flashable zip. Uses `zip` when available and `python3` otherwise.
+
+## Syncing with upstream
+
+```bash
+./sync-upstream.sh          # review the changes
+./sync-upstream.sh --push   # publish them
+```
+
+Rebases the local patches onto `upstream/main`, shows what changed upstream and
+what is being replayed, and stops if there is a conflict. Conflicts are expected
+whenever upstream touches `tool.sh`, `iptables.sh`, `settings.conf` or the README.
 
 ---
 
-## Estado en el proyecto original
+## Upstream status
 
-Los dos arreglos genéricos se enviaron como pull requests separados, sin las
-partes específicas de este fork (mis DNS, mi zona horaria, mi `updateJson`):
+The two generic fixes were submitted as separate pull requests, without the
+fork-specific parts (custom DNS, timezone, `updateJson`):
 
-- [#77](https://github.com/twoone-3/AdGuardHomeForRoot/pull/77) — la carrera de arranque
-- [#78](https://github.com/twoone-3/AdGuardHomeForRoot/pull/78) — el `REJECT` de IPv6
+- [#77](https://github.com/twoone-3/AdGuardHomeForRoot/pull/77) — the boot race
+- [#78](https://github.com/twoone-3/AdGuardHomeForRoot/pull/78) — the IPv6 `REJECT`
 
-Si el mantenedor los acepta, `sync-upstream.sh` los absorberá en el rebase y
-esos parches locales dejarán de ser necesarios.
+If they are merged, `sync-upstream.sh` will absorb them during the rebase and
+those local patches become unnecessary.
 
-## Créditos
+## Credits
 
-Módulo original de [twoone3](https://github.com/twoone-3/AdGuardHomeForRoot).
-Licencia MIT, igual que el original.
+Original module by [twoone3](https://github.com/twoone-3/AdGuardHomeForRoot),
+MIT licensed, same as this fork.
 
 - [AdGuardHome](https://github.com/AdguardTeam/AdGuardHome)
 - [AWAvenue Ads Rule](https://github.com/TG-Twilight/AWAvenue-Ads-Rule)

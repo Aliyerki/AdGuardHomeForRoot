@@ -1,19 +1,21 @@
 # AdGuardHome for Root
 
-[Español](README.md) | English | [简体中文](README_zh.md)
+**Original project documentation** — English | [简体中文](README_zh.md)
 
-> Fork of [twoone-3/AdGuardHomeForRoot](https://github.com/twoone-3/AdGuardHomeForRoot).
+> This is a fork of [twoone-3/AdGuardHomeForRoot](https://github.com/twoone-3/AdGuardHomeForRoot).
+> The page below is the upstream README, kept as-is. What this fork changes is
+> described in **[README.md](README.md)** ([español](README_es.md)).
 >
-> It fixes a boot-time DNS blackout: the module applied its iptables REDIRECT as
-> soon as the AdGuardHome process spawned, but the DNS listener binds up to 40s
-> later, so every query in between went to a dead port. Android's connectivity
-> check failed inside that window and flagged the network as having no internet,
-> which is why the browser and Play Store refused to work until airplane mode was
-> toggled. It also rejects (rather than drops) IPv6 DNS, and ships upstreams that
-> are reachable from the Americas.
+> In short, it fixes a boot-time DNS blackout: the module applied its iptables
+> REDIRECT as soon as the AdGuardHome process spawned, but the DNS listener binds
+> up to 40s later, so every query in between went to a dead port. Android's
+> connectivity check failed inside that window and flagged the network as having
+> no internet, which is why the browser and Play Store refused to work until
+> airplane mode was toggled. It also rejects (rather than drops) IPv6 DNS, and
+> ships upstreams that are reachable from the Americas.
 >
-> Full write-up in [Español](README.md). The two generic fixes were sent upstream
-> as [#77](https://github.com/twoone-3/AdGuardHomeForRoot/pull/77) and
+> The two generic fixes were sent upstream as
+> [#77](https://github.com/twoone-3/AdGuardHomeForRoot/pull/77) and
 > [#78](https://github.com/twoone-3/AdGuardHomeForRoot/pull/78).
 
 ![arm-64 support](https://img.shields.io/badge/arm--64-support-ef476f?logo=linux&logoColor=white&color=ef476f)

@@ -1,10 +1,10 @@
 # AdGuardHome for Root
 
-[Español](README.md) | [English](README_en.md) | 简体中文
+**原项目文档** — [English](README_en.md) | 简体中文
 
 > 这是 [twoone-3/AdGuardHomeForRoot](https://github.com/twoone-3/AdGuardHomeForRoot)
-> 的一个分支，修复了开机时 DNS 中断的问题。改动说明见
-> [Español](README.md) 或 [English](README_en.md)。
+> 的一个分支，修复了开机时 DNS 中断的问题。以下为原项目的 README，未作改动；
+> 本分支的改动说明见 **[README.md](README.md)**（[español](README_es.md)）。
 
 ![arm-64 support](https://img.shields.io/badge/arm--64-support-ef476f?logo=linux&logoColor=white&color=ef476f)
 ![arm-v7 support](https://img.shields.io/badge/arm--v7-support-ffa500?logo=linux&logoColor=white&color=ffa500)

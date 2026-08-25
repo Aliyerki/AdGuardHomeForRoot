@@ -1,6 +1,20 @@
 # AdGuardHome for Root
 
-English | [简体中文](README.md)
+[Español](README.md) | English | [简体中文](README_zh.md)
+
+> Fork of [twoone-3/AdGuardHomeForRoot](https://github.com/twoone-3/AdGuardHomeForRoot).
+>
+> It fixes a boot-time DNS blackout: the module applied its iptables REDIRECT as
+> soon as the AdGuardHome process spawned, but the DNS listener binds up to 40s
+> later, so every query in between went to a dead port. Android's connectivity
+> check failed inside that window and flagged the network as having no internet,
+> which is why the browser and Play Store refused to work until airplane mode was
+> toggled. It also rejects (rather than drops) IPv6 DNS, and ships upstreams that
+> are reachable from the Americas.
+>
+> Full write-up in [Español](README.md). The two generic fixes were sent upstream
+> as [#77](https://github.com/twoone-3/AdGuardHomeForRoot/pull/77) and
+> [#78](https://github.com/twoone-3/AdGuardHomeForRoot/pull/78).
 
 ![arm-64 support](https://img.shields.io/badge/arm--64-support-ef476f?logo=linux&logoColor=white&color=ef476f)
 ![arm-v7 support](https://img.shields.io/badge/arm--v7-support-ffa500?logo=linux&logoColor=white&color=ffa500)
@@ -28,7 +42,7 @@ Follow our channel for the latest news, or join our group for discussion!
 
 ## Tutorial
 
-1. Go to the [Release](https://github.com/twoone-3/AdGuardHomeForRoot/releases/latest) page to download the module
+1. Go to the [Release](https://github.com/Aliyerki/AdGuardHomeForRoot/releases/latest) page to download the module
 2. Check Android Settings -> Network & Internet -> Advanced -> Private DNS, ensure `Private DNS` is turned off
 3. Install the module in the root manager and reboot the device
 4. If you see a successful module running prompt, you can access <http://127.0.0.1:3000> to enter the AdGuardHome backend, default username and password are root/root

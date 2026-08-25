@@ -133,7 +133,7 @@ enable)
   enable_iptables_chain "$iptables_w" "ADGUARD_REDIRECT_DNS" || exit 1
 
   if [ "$block_ipv6_dns" = true ]; then
-    log "IPv6 DNS mode: block (DROP IPv6 DNS traffic)" "IPv6 DNS 模式: block (丢弃 IPv6 DNS 流量)"
+    log "IPv6 DNS mode: block (REJECT IPv6 DNS traffic)" "IPv6 DNS 模式: block (拒绝 IPv6 DNS 流量)"
     add_block_ipv6_dns || exit 1
   else
     log "IPv6 DNS mode: hijack (NAT REDIRECT to AdGuard Home)" "IPv6 DNS 模式: hijack (劫持 IPv6 到 AdGuard Home)"

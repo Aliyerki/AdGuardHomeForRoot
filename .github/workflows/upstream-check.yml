@@ -55,30 +55,29 @@ jobs:
             --description "Upstream has changes this fork has not picked up" \
             --color 0e8a16 --force
 
-          body="$(cat <<EOF
-Upstream (\`twoone-3/AdGuardHomeForRoot\`) is **$COUNT commit(s)** ahead of this fork.
-
-$COMMITS
-
-To pick them up:
-
-\`\`\`bash
-./sync-upstream.sh           # rebases the fork's patches, stops on conflict
-./sync-upstream.sh --push
-git tag $(date -u +%Y%m%d) && git push origin $(date -u +%Y%m%d)
-\`\`\`
-
-The tag builds and publishes the release, and points \`fork-version.json\` at it.
-EOF
-          )"
+          # Built with printf rather than a heredoc: heredoc bodies have to start
+          # at column 0, and a line less indented than the run block ends the
+          # YAML block scalar, which silently breaks the whole workflow file.
+          today="$(date -u +%Y%m%d)"
+          {
+            printf 'Upstream (`twoone-3/AdGuardHomeForRoot`) is **%s commit(s)** ahead of this fork.\n\n' "$COUNT"
+            printf '%s\n\n' "$COMMITS"
+            printf 'To pick them up:\n\n'
+            printf '```bash\n'
+            printf './sync-upstream.sh           # rebases the fork patches, stops on conflict\n'
+            printf './sync-upstream.sh --push\n'
+            printf 'git tag %s && git push origin %s\n' "$today" "$today"
+            printf '```\n\n'
+            printf 'The tag builds and publishes the release, and points `fork-version.json` at it.\n'
+          } >"$RUNNER_TEMP/body.md"
 
           existing="$(gh issue list --label upstream-sync --state open --json number -q '.[0].number // empty')"
           if [ -n "$existing" ]; then
             echo "Updating issue #$existing"
-            gh issue comment "$existing" --body "$body"
+            gh issue comment "$existing" --body-file "$RUNNER_TEMP/body.md"
           else
             gh issue create \
               --title "Upstream is $COUNT commit(s) ahead" \
               --label upstream-sync \
-              --body "$body"
+              --body-file "$RUNNER_TEMP/body.md"
           fi
